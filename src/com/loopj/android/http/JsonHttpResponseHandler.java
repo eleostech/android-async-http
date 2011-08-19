@@ -57,6 +57,19 @@ public class JsonHttpResponseHandler extends AsyncHttpResponseHandler {
      */
     public void onSuccess(JSONArray response) {}
 
+    /**
+     * Fired when a request fails to complete, override to handle in your own code
+     * @param error the underlying cause of the failure
+     * @param the actual response body parsed into a json array
+     */
+    public void onFailureWithContent(Throwable error, JSONArray content) { onFailure(error); }
+
+    /**
+     * Fired when a request fails to complete, override to handle in your own code
+     * @param error the underlying cause of the failure
+     * @param the actual response body parsed into a json object
+     */
+    public void onFailureWithContent(Throwable error, JSONObject content) { onFailure(error); }
 
     // Utility methods
     @Override
@@ -69,6 +82,26 @@ public class JsonHttpResponseHandler extends AsyncHttpResponseHandler {
                 onSuccess((JSONObject)jsonResponse);
             } else if(jsonResponse instanceof JSONArray) {
                 onSuccess((JSONArray)jsonResponse);
+            }
+        } catch(JSONException e) {
+            onFailure(e);
+        }
+    }
+
+    @Override
+    protected void handleFailureMessage(String responseBody, Throwable error) {
+        super.handleFailureMessage(responseBody, error);
+
+        try {
+            if (responseBody != null && responseBody.length() > 0) {
+                Object jsonResponse = parseResponse(responseBody);
+                if(jsonResponse instanceof JSONObject) {
+                    onFailureWithContent(error, (JSONObject)jsonResponse);
+                } else if(jsonResponse instanceof JSONArray) {
+                    onFailureWithContent(error, (JSONArray)jsonResponse);
+                }
+            } else {
+                onFailure(error);
             }
         } catch(JSONException e) {
             onFailure(e);

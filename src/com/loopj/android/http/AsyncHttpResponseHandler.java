@@ -115,6 +115,12 @@ public class AsyncHttpResponseHandler {
      */
     public void onFailure(Throwable error) {}
 
+    /**
+     * Fired when a request fails to complete, override to handle in your own code
+     * @param error the underlying cause of the failure
+     * @param the actual response body
+     */
+    public void onFailureWithContent(Throwable error, String content) { onFailure(error); }
 
     //
     // Pre-processing of messages (executes in background threadpool thread)
@@ -124,8 +130,9 @@ public class AsyncHttpResponseHandler {
         sendMessage(obtainMessage(SUCCESS_MESSAGE, responseBody));
     }
 
-    protected void sendFailureMessage(Throwable e) {
-        sendMessage(obtainMessage(FAILURE_MESSAGE, e));
+    protected void sendFailureMessage(String responseBody, Throwable e) {
+        Object[] payload = {responseBody, e};
+        sendMessage(obtainMessage(FAILURE_MESSAGE, payload));
     }
 
     protected void sendStartMessage() {
@@ -145,8 +152,12 @@ public class AsyncHttpResponseHandler {
         onSuccess(responseBody);
     }
 
-    protected void handleFailureMessage(Throwable e) {
-        onFailure(e);
+    protected void handleFailureMessage(String responseBody, Throwable e) {
+        if(responseBody != null && responseBody.length() > 0) {
+            onFailureWithContent(e, responseBody);
+        } else {
+            onFailure(e);
+        }
     }
 
 
@@ -158,7 +169,8 @@ public class AsyncHttpResponseHandler {
                 handleSuccessMessage((String)msg.obj);
                 break;
             case FAILURE_MESSAGE:
-                handleFailureMessage((Throwable)msg.obj);
+                Object[] payload = (Object[])msg.obj;
+                handleFailureMessage((String)payload[0], (Throwable)payload[1]);
                 break;
             case START_MESSAGE:
                 onStart();
@@ -181,7 +193,7 @@ public class AsyncHttpResponseHandler {
         Message msg = null;
         if(handler != null){
             msg = this.handler.obtainMessage(responseMessage, response);
-        }else{
+        } else{
             msg = new Message();
             msg.what = responseMessage;
             msg.obj = response;
@@ -192,21 +204,22 @@ public class AsyncHttpResponseHandler {
 
     // Interface to AsyncHttpRequest
     void sendResponseMessage(HttpResponse response) {
-        StatusLine status = response.getStatusLine();
-        if(status.getStatusCode() >= 300) {
-            sendFailureMessage(new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));
-        } else {
-            try {
-                HttpEntity entity = null;
-                HttpEntity temp = response.getEntity();
-                if(temp != null) {
-                    entity = new BufferedHttpEntity(temp);
-                }
-
-                sendSuccessMessage(EntityUtils.toString(entity));
-            } catch(IOException e) {
-                sendFailureMessage(e);
+        try {
+            StatusLine status = response.getStatusLine();
+            HttpEntity entity = null;
+            HttpEntity temp = response.getEntity();
+            if(temp != null) {
+                entity = new BufferedHttpEntity(temp);
             }
+
+            if(status.getStatusCode() >= 300) {
+                sendFailureMessage(EntityUtils.toString(entity),
+                                   new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));
+            } else {                
+                sendSuccessMessage(EntityUtils.toString(entity));
+            }
+        } catch(IOException e) {
+            sendFailureMessage(null, e);
         }
     }
 }
