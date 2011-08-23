@@ -82,6 +82,8 @@ public class JsonHttpResponseHandler extends AsyncHttpResponseHandler {
                 onSuccess((JSONObject)jsonResponse);
             } else if(jsonResponse instanceof JSONArray) {
                 onSuccess((JSONArray)jsonResponse);
+            } else {
+                onFailure(new Exception("Unexpected response."));
             }
         } catch(JSONException e) {
             onFailure(e);
@@ -97,6 +99,8 @@ public class JsonHttpResponseHandler extends AsyncHttpResponseHandler {
                     onFailureWithContent(error, (JSONObject)jsonResponse);
                 } else if(jsonResponse instanceof JSONArray) {
                     onFailureWithContent(error, (JSONArray)jsonResponse);
+                } else {
+                    onFailure(error);
                 }
             } else {
                 onFailure(error);
