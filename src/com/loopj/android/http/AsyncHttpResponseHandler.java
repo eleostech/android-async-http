@@ -206,12 +206,7 @@ public class AsyncHttpResponseHandler {
     void sendResponseMessage(HttpResponse response) {
         try {
             StatusLine status = response.getStatusLine();
-            HttpEntity entity = null;
-            HttpEntity temp = response.getEntity();
-            if(temp != null) {
-                entity = new BufferedHttpEntity(temp);
-            }
-
+            HttpEntity entity = response.getEntity();
             if(status.getStatusCode() >= 300) {
                 sendFailureMessage(EntityUtils.toString(entity),
                                    new HttpResponseException(status.getStatusCode(), status.getReasonPhrase()));
