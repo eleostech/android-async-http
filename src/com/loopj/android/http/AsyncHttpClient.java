@@ -57,6 +57,7 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.HttpEntityWrapper;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.HttpParams;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpProtocolParams;
@@ -199,6 +200,17 @@ public class AsyncHttpClient {
      */
     public void setUserAgent(String userAgent) {
         HttpProtocolParams.setUserAgent(this.httpClient.getParams(), userAgent);
+    }
+
+    /**
+     * Sets the connect timeout. By default, 10 seconds
+     * @param timeout in milliseconds
+     */
+    public void setTimeout(int timeout) {
+        final HttpParams httpParams = this.httpClient.getParams();
+        ConnManagerParams.setTimeout(httpParams, timeout);
+        HttpConnectionParams.setSoTimeout(httpParams, timeout);
+        HttpConnectionParams.setConnectionTimeout(httpParams, timeout);
     }
 
     /**
